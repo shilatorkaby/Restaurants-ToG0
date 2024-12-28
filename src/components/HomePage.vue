@@ -1,3 +1,4 @@
+
 <template>
     <div class="container">
         <Header />
@@ -11,24 +12,39 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>Type</th>
                             <th>Restaurant Name</th>
                             <th>Address</th>
+                            <th class="comments-header">Comments</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="item in restaurants" :key="item.id">
-                            <td>{{ item.id }}</td>
+                            <td>
+                                <div class="type-icon" :title="item.type">
+                                    <img v-if="item.type === 'dairy'" src="../assets/dairy-icon.png" alt="Dairy" class="icon-dairy" />
+                                    <img v-if="item.type === 'meat'" src="../assets/meat-icon.png" alt="Meat" class="icon-meat" />
+                                    <img v-if="item.type === 'parve'" src="../assets/parve-icon.png" alt="Parve" class="icon-parve" />
+                                </div>
+                            </td>
                             <td>{{ item.name }}</td>
                             <td>{{ item.address }}</td>
+                            <td class="comments-column">
+                                <textarea
+                                    class="comments-input"
+                                    v-model="item.comments"
+                                    placeholder="Add your comments..."
+                                    @blur="updateComments(item)"
+                                ></textarea>
+                            </td>
                             <td>
                                 <div class="action-buttons">
                                     <router-link :to="'/update/' + item.id" class="update-btn">
                                         Edit
                                     </router-link>
                                     <button @click="deleteRestaurant(item.id)" class="delete-btn">
-                                        Delete
+                                        Remove
                                     </button>
                                 </div>
                             </td>
@@ -45,72 +61,83 @@
 import Header from './Header.vue';
 import axios from 'axios';
 
-
 export default {
     name: 'HomePage',
     data() {
         return {
-            userName: '',
             userId: '',
+            userName: '',
             restaurants: [],
-        }
+        };
     },
     components: {
-        Header
-    }, methods: {
-        async deleteRestaurant(id) {
-            console.log("logg delete");
+        Header,
+    },
+    methods: {
+        async deleteRestaurant(restaurantId) {
+            try {
+                const favoritesResponse = await axios.get(`http://localhost:3000/favorites?restaurantId=${restaurantId}`);
+                if (favoritesResponse.data.length > 0) {
+                    const favoriteId = favoritesResponse.data[0].id;
 
-            console.log(id);
-
-            let response = await axios.delete('http://localhost:3000/restaurants/' + id)
-            console.log(response);
-
-            if (response.status == 200) {
-                this.loadData()
+                    const deleteResponse = await axios.delete(`http://localhost:3000/favorites/${favoriteId}`);
+                    if (deleteResponse.status === 200) {
+                        this.loadData();
+                    }
+                } else {
+                    console.error(`No favorite found for restaurantId: ${restaurantId}`);
+                }
+            } catch (error) {
+                console.error('Failed to delete favorite:', error);
             }
         },
-        // reload data after deletion
+        async updateComments(item) {
+            try {
+                // Update restaurant comments in the database
+                await axios.patch(`http://localhost:3000/restaurants/${item.id}`, {
+                    comments: item.comments,
+                });
+            } catch (error) {
+                console.error('Failed to update comments:', error);
+            }
+        },
         async loadData() {
             try {
-                let userId = localStorage.getItem('userId');
-                let userInfo = localStorage.getItem('user-info');
-                console.log("userId", userId);
-
+                const userId = localStorage.getItem('userId');
                 if (userId) {
-                    let response = await axios.get("http://localhost:3000/users?id=" + userId)
-                    console.log("homepge response users", response);
+                    this.userId = userId;
 
-                    if (response.data.length > 0) {
-                        this.userName = response.data[0].name.split(' ')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                    }
+                    const userResponse = await axios.get(`http://localhost:3000/users?id=${userId}`);
+                    const userData = userResponse.data[0];
+                    if (userData) {
+                        this.userName = userData.name;
+                        localStorage.setItem('userId', userId);
+                    } else throw new Error('User not found');
 
-                    console.log("response.data.name", response.data[0].name);
-                    console.log(userInfo);
+                    const favoritesResponse = await axios.get(`http://localhost:3000/favorites?userId=${userId}`);
+                    const restaurantIds = favoritesResponse.data.map((fav) => fav.restaurantId);
 
+                    const restaurantRequests = restaurantIds.map((id) => axios.get(`http://localhost:3000/restaurants/${id}`));
+                    const restaurantResponses = await Promise.all(restaurantRequests);
+                    this.restaurants = restaurantResponses.map((res) => res.data);
                 } else {
-                    this.$router.push({ name: 'SignUp' })
+                    this.$router.push({ name: 'SignUp' });
                 }
-
-                let response = await axios.get("http://localhost:3000/restaurants")
-                this.restaurants = response.data;
-
             } catch (error) {
-                console.error("An error occurred while loading data:", error);
+                console.error('An error occurred while loading data:', error);
             }
-
-        }
+        },
     },
     async mounted() {
-
-        this.loadData()
-    }
-}
+        await this.loadData();
+    },
+};
 </script>
 
+
+
 <style>
+
 body {
     margin: 0;
     background-color: #f5f7fa;
@@ -229,7 +256,7 @@ button.delete-btn:hover {
 th:nth-child(1),
 /* ID column */
 td:nth-child(1) {
-    width: 10%;
+    width: 5%;
 }
 
 /*
@@ -242,7 +269,7 @@ th:nth-child(3),
 td:nth-child(3),
 th:nth-child(4),
 td:nth-child(4) {
-    width: 30%;
+    width: 20%;
 }
 
 
@@ -270,4 +297,41 @@ tr:last-child td {
         text-align: center;
     }
 }
+
+.type-icon img {
+    width: 24px;
+    height: 24px;
+    margin: 0 5px;
+    display: inline-block;
+}
+
+.comments-header {
+    background-color: #edf2f7;
+    font-weight: bold;
+    color: #2c5282;
+}
+
+.comments-column {
+    background-color: #f7fafc;
+    text-align: left;
+    padding: 8px;
+}
+
+.comments-input {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 14px;
+    resize: vertical;
+    background-color: #ffffff;
+}
+
+.comments-input:focus {
+    outline: none;
+    border-color: #63b3ed;
+    box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.4);
+}
+
 </style>

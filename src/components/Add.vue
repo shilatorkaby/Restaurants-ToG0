@@ -2,27 +2,45 @@
     <Header />
     <div class="page-container">
         <div class="add-section">
+
             <button class="back-button" @click="goBack">
                 <span class="back-icon">←</span>
             </button>
+
             <h1 class="add-title">Add New Restaurant</h1>
+
             <form class="add-form" @submit.prevent="addRestaurant">
+
                 <div class="form-group">
                     <label for="name">Restaurant Name</label>
                     <input id="name" type="text" name="name" placeholder="Enter restaurant name"
-                        v-model="restaurant.name" required   class="fade-placeholder"
-                        />
+                        v-model="restaurant.name" required class="fade-placeholder" />
                 </div>
+
                 <div class="form-group">
                     <label for="address">Restaurant Address</label>
                     <input id="address" type="text" name="address" placeholder="Enter restaurant address"
-                        v-model="restaurant.address" required   class="fade-placeholder"
-                        />
+                        v-model="restaurant.address" required class="fade-placeholder" />
                 </div>
+
+                <div class="form-group">
+                    <label for="type">Restaurant type</label>
+                    <select id="type" name="type" v-model="restaurant.type">
+                        <option>Dairy</option>
+                        <option>Meat</option>
+                        <option>Parve</option>
+                    </select>
+
+                </div>
+
                 <button type="submit" class="add-button" :disabled="isLoading">
                     {{ isLoading ? 'Adding...' : 'Add Restaurant' }}
                 </button>
+
+
             </form>
+            <p v-if="error" class="error-message">{{ error }}</p>
+
         </div>
     </div>
 </template>
@@ -37,14 +55,16 @@ export default {
         Header
     },
     data() {
-        return { 
-            userId:'',
+        return {
+            userId: '',
             restaurant: {
                 name: '',
                 address: '',
+                type: '',
+                comments:''
             },
             isLoading: false,
-            error: null           
+            error: null
         }
     },
     methods: {
@@ -52,35 +72,50 @@ export default {
             try {
                 this.isLoading = true;
                 this.error = null;
+                this.restaurant.type = this.restaurant.type.toLocaleLowerCase();
 
-                const response = await axios.post(
+                // Adding restaurant to the "restaurants" table
+                const restaurantResponse = await axios.post(
                     "http://localhost:3000/restaurants",
-                    {
-                        restaurant: this.restaurant,
-                        userId: this.userId}
+                    this.restaurant
                 );
 
-                if (response.status === 201) {
-                    localStorage.setItem("user-info", JSON.stringify(response.data));
-                    this.$router.push({
-                        name: "HomePage",
-                        params:{userId: this.userId},
-                        query: { added: 'success' }
-                    });
+                if (restaurantResponse.status === 201) {
+                    const newRestaurant = restaurantResponse.data;
+
+                    // Adding restaurant to the "favorites" table
+                    const favoriteResponse = await axios.post(
+                        "http://localhost:3000/favorites",
+                        {
+                            userId: this.userId,
+                            restaurantId: newRestaurant.id
+                        }
+                    );
+
+                    if (favoriteResponse.status === 201) {
+                        //  Navigate to the home page with a success query parameter
+                        this.$router.push({
+                            name: "HomePage",
+                            params: { userId: this.userId },
+                            query: { added: 'success' }
+                        });
+                    }
                 }
             } catch (error) {
+
                 this.error = error.response?.data?.message ||
                     'Error adding restaurant. Please try again.';
                 console.error('Add error:', error);
+
             } finally {
                 this.isLoading = false;
             }
         },
 
         goBack() {
-            this.$router.push({ 
+            this.$router.push({
                 name: 'HomePage',
-                params: { userId: this.userId }  
+                params: { userId: this.userId }
             });
         }
     },
@@ -111,6 +146,11 @@ export default {
     background-color: white;
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.error-message {
+    color: red;
+    margin-top: 10px;
 }
 
 .add-title {
