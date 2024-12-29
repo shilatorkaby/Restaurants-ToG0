@@ -5,8 +5,7 @@
 ## run json server
 ```
 cd "vue-projects\db"
-json-server --watch db.json
-```
+json-server --watch db.json --log=debug```
 
 ## run project
 ```
