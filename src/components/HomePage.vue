@@ -1,4 +1,3 @@
-
 <template>
     <div class="container">
         <Header />
@@ -23,20 +22,19 @@
                         <tr v-for="item in restaurants" :key="item.id">
                             <td>
                                 <div class="type-icon" :title="item.type">
-                                    <img v-if="item.type === 'dairy'" src="../assets/dairy-icon.png" alt="Dairy" class="icon-dairy" />
-                                    <img v-if="item.type === 'meat'" src="../assets/meat-icon.png" alt="Meat" class="icon-meat" />
-                                    <img v-if="item.type === 'parve'" src="../assets/parve-icon.png" alt="Parve" class="icon-parve" />
+                                    <img v-if="item.type === 'dairy'" src="../assets/dairy-icon.png" alt="Dairy"
+                                        class="icon-dairy" />
+                                    <img v-if="item.type === 'meat'" src="../assets/meat-icon.png" alt="Meat"
+                                        class="icon-meat" />
+                                    <img v-if="item.type === 'parve'" src="../assets/parve-icon.png" alt="Parve"
+                                        class="icon-parve" />
                                 </div>
                             </td>
                             <td>{{ item.name }}</td>
                             <td>{{ item.address }}</td>
                             <td class="comments-column">
-                                <textarea
-                                    class="comments-input"
-                                    v-model="item.comments"
-                                    placeholder="Add your comments..."
-                                    @blur="updateComments(item)"
-                                ></textarea>
+                                <textarea class="comments-input" v-model="item.comments"
+                                    placeholder="Add your comments..." @blur="updateComments(item)"></textarea>
                             </td>
                             <td>
                                 <div class="action-buttons">
@@ -46,6 +44,11 @@
                                     <button @click="deleteRestaurant(item.id)" class="delete-btn">
                                         Remove
                                     </button>
+                                    <router-link :to="'/share/' + item.id" class="share-btn">
+                                        <img class="share-icon" src="../assets/share-icon.png" alt="Share Icon" />
+                                        Share
+                                    </router-link>
+
                                 </div>
                             </td>
                         </tr>
@@ -56,11 +59,14 @@
     </div>
 </template>
 
-
 <script>
 import Header from './Header.vue';
 import axios from 'axios';
 
+/**
+ * HomePage component displays a list of favorite restaurants for the user.
+ * It allows users to delete restaurants and add comments.
+ */
 export default {
     name: 'HomePage',
     data() {
@@ -74,6 +80,10 @@ export default {
         Header,
     },
     methods: {
+        /**
+         * Deletes a restaurant from the favorites.
+         * @param {number} restaurantId - The ID of the restaurant to delete.
+         */
         async deleteRestaurant(restaurantId) {
             try {
                 const favoritesResponse = await axios.get(`http://localhost:3000/favorites?restaurantId=${restaurantId}`);
@@ -91,9 +101,12 @@ export default {
                 console.error('Failed to delete favorite:', error);
             }
         },
+        /**
+         * Updates comments for a restaurant.
+         * @param {Object} item - The restaurant item to update.
+         */
         async updateComments(item) {
             try {
-                // Update restaurant comments in the database
                 await axios.patch(`http://localhost:3000/restaurants/${item.id}`, {
                     comments: item.comments,
                 });
@@ -101,6 +114,9 @@ export default {
                 console.error('Failed to update comments:', error);
             }
         },
+        /**
+         * Loads user data and favorite restaurants.
+         */
         async loadData() {
             try {
                 const userId = localStorage.getItem('userId');
@@ -110,7 +126,9 @@ export default {
                     const userResponse = await axios.get(`http://localhost:3000/users?id=${userId}`);
                     const userData = userResponse.data[0];
                     if (userData) {
-                        this.userName = userData.name;
+                        this.userName = userData.name.split(' ')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
                         localStorage.setItem('userId', userId);
                     } else throw new Error('User not found');
 
@@ -134,10 +152,7 @@ export default {
 };
 </script>
 
-
-
 <style>
-
 body {
     margin: 0;
     background-color: #f5f7fa;
@@ -149,7 +164,7 @@ body {
 }
 
 .content {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 20px;
 }
@@ -184,7 +199,6 @@ table {
     text-align: center;
     border: none;
     table-layout: fixed;
-    /* This helps control column widths */
 }
 
 th,
@@ -193,9 +207,7 @@ td {
     text-align: center;
     border-bottom: 1px solid #e2e8f0;
     vertical-align: middle;
-    /* Add this to vertically center content */
 }
-
 
 th {
     background-color: #f8fafc;
@@ -223,10 +235,10 @@ tr:hover {
     margin: 0 auto;
 }
 
-/* Style both update and delete buttons consistently */
 .update-btn,
-.delete-btn {
-    background-color: #384f4b;
+.delete-btn,
+.share-btn {
+    background-color: #905959;
     color: white;
     border: none;
     padding: 6px 12px;
@@ -236,33 +248,35 @@ tr:hover {
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
-    display: inline-block;
-    width: 80px;
-    text-align: center;
+    display: inline-flex;
+    /* Use flex for better alignment */
+    align-items: center;
+    /* Center icon and text vertically */
+    justify-content: center;
+    /* Center content horizontally */
+    gap: 6px;
+    /* Add spacing between icon and text */
+    width: 100px;
+    /* Ensure consistent button width */
     box-sizing: border-box;
-    margin: 0;
 }
 
-/* Hover state for both buttons */
 .update-btn:hover,
 .delete-btn:hover,
+.share-btn,
+.share-btn,
 a.update-btn:hover,
-button.delete-btn:hover {
-    background-color: #05251f;
+delete-btn:hover,
+share-btn:hover {
+    background-color: #5e3c3c;
     color: white;
 }
 
-/* Set specific widths for each column */
 th:nth-child(1),
-/* ID column */
 td:nth-child(1) {
     width: 5%;
 }
 
-/*
-2-Restaurant Name column
-3-address column
-4-action column */
 th:nth-child(2),
 td:nth-child(2),
 th:nth-child(3),
@@ -271,7 +285,6 @@ th:nth-child(4),
 td:nth-child(4) {
     width: 20%;
 }
-
 
 tr:last-child td {
     border-bottom: none;
@@ -299,11 +312,55 @@ tr:last-child td {
 }
 
 .type-icon img {
-    width: 24px;
-    height: 24px;
+    width: 35px;
+    height: 35px;
     margin: 0 5px;
     display: inline-block;
 }
+
+
+.share-btn {
+    background-color: #905959;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    /* Ensure flex layout */
+    align-items: center;
+    /* Center content vertically */
+    justify-content: center;
+    /* Center content horizontally */
+    gap: 0px;
+    /* Spacing between icon and text */
+    width: 100px;
+    /* Ensure consistent button size */
+    height: 30px;
+    /* Match the height of other buttons */
+    box-sizing: border-box;
+}
+
+.share-btn:hover {
+    background-color: #5e3c3c;
+    color: white;
+}
+
+.share-icon {
+    width: 40px;
+    /* Set a fixed width for the icon */
+    height:40px;
+    /* Set a fixed height for the icon */
+    object-fit: contain;
+    /* Maintain the aspect ratio of the image */
+    flex-shrink: 0;
+    /* Prevent the icon from resizing */
+}
+
 
 .comments-header {
     background-color: #edf2f7;
@@ -333,5 +390,4 @@ tr:last-child td {
     border-color: #63b3ed;
     box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.4);
 }
-
 </style>

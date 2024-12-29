@@ -3,12 +3,12 @@
         <nav class="nav-container">
             <div class="nav-left">
                 <router-link to="/" class="nav-link home-link">
-                    <span class="logo">🍽️</span> Restaurant Manager
+                    <img class="logo-icon" src="../assets/home-icon.png" alt="App Icon" />
+                    <span class="logo-text">Restaurant Manager</span>
                 </router-link>
             </div>
             
             <div class="nav-right">
-                <!-- <router-link to="/" class="nav-link">Home</router-link> -->
                 <router-link to="/add" class="nav-link">Add Restaurant</router-link>
                 <button @click="directLogout" class="nav-link logout-btn">
                     <span class="logout-icon">↪</span> Log out
@@ -17,6 +17,7 @@
         </nav>
     </header>
 </template>
+
 
 <script>
 export default {
@@ -34,25 +35,25 @@ export default {
 <style scoped>
 .header {
     background-color: #ffffff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
 }
 
 .nav-container {
-    max-width: 1200px;
+    max-width: 90%;
     margin: 0 auto;
     padding: 0 20px;
-    height: 64px;
+    height: 64px; /* Ensure enough height for the header */
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: center; /* Align items vertically within the header */
 }
 
 .nav-left {
     display: flex;
-    align-items: center;
+    align-items: center; /* Vertically align items */
 }
 
 .nav-right {
@@ -69,6 +70,8 @@ export default {
     font-weight: 500;
     transition: all 0.2s ease;
     font-size: 15px;
+    display: flex; /* Flex container for alignment */
+    align-items: center; /* Vertically align content */
 }
 
 .home-link {
@@ -77,9 +80,15 @@ export default {
     padding-left: 0;
 }
 
-.logo {
-    font-size: 24px;
-    margin-right: 8px;
+.logo-icon {
+    width: 24px; /* Adjust width for a suitable size */
+    height: 24px; /* Adjust height for a suitable size */
+    margin-right: 8px; /* Add spacing between the icon and the text */
+    object-fit: contain; /* Ensure the image maintains aspect ratio */
+}
+
+.logo-text {
+    font-size: 18px;
 }
 
 .nav-link:hover {
@@ -127,8 +136,14 @@ export default {
         font-size: 16px;
     }
 
-    .logo {
-        font-size: 20px;
+    .logo-icon {
+        width: 20px; /* Adjust size for smaller screens */
+        height: 20px;
+        margin-right: 20px;
+    }
+
+    .logo-text {
+        font-size: 16px;
     }
 }
 </style>

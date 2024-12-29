@@ -1,16 +1,38 @@
 <template>
   <div class="register">
     <!-- Logo -->
-    <img class="logo" src="../assets/app-logo.jpg" />
-    <h1 class="title">Create an Account</h1>
+    <img class="logo" src="../assets/app-logo.png" alt="App Logo" />
+    <h1 class="title">Create New Account.</h1>
+
+    <!-- Notification -->
+    <div v-if="successMessage" class="notification success">
+      {{ successMessage }}
+    </div>
 
     <!-- Registration Form -->
-    <input type="text" v-model="name" placeholder="Enter your full name" class="fade-placeholder" />
-    <input type="text" v-model="number" placeholder="Enter your phone number" class="fade-placeholder" />
-    <input type="password" v-model="password" placeholder="Enter your password" class="fade-placeholder" />
+    <form @submit.prevent="signUp">
+      <input
+        type="text"
+        v-model="name"
+        placeholder="Enter your full name"
+        class="fade-placeholder"
+      />
+      <input
+        type="text"
+        v-model="number"
+        placeholder="Enter your phone number"
+        class="fade-placeholder"
+      />
+      <input
+        type="password"
+        v-model="password"
+        placeholder="Enter your password"
+        class="fade-placeholder"
+      />
 
-    <!-- Sign Up Button -->
-    <button class="register-btn" @click="signUp">Sign Up</button>
+      <!-- Sign Up Button -->
+      <button type="submit" class="register-btn">Sign Up</button>
+    </form>
 
     <!-- Divider -->
     <div class="divider">or</div>
@@ -20,7 +42,8 @@
 
     <!-- Text for Registered Users -->
     <p class="registered-text">
-      Already registered? <span @click="redirectToLogin" class="login-link">Please Log In</span>
+      Already registered?
+      <span @click="redirectToLogin" class="login-link">Please Log In</span>
     </p>
   </div>
 </template>
@@ -35,52 +58,78 @@ export default {
       name: "",
       number: "",
       password: "",
+      successMessage: "", // Store success messages
     };
   },
   methods: {
     async signUp() {
-      if (this.name && this.number && this.password) {
-        try {
-          // Call isLogedIn() to check if the user already exists
+      if (!this.validateForm()) return;
 
-          const alreadyLoggedIn = await this.isLogedIn();
+      try {
+        const alreadyLoggedIn = await this.isLoggedIn();
 
-          if (!alreadyLoggedIn) {
-            const response = await axios.post("http://localhost:3000/users", {
-              name: this.name,
-              number: this.number,
-              password: this.password,
-            });
-            if (response.status === 201) {
-              alert("Sign Up Success");
-              localStorage.setItem("user-info", JSON.stringify(response.data));
-              localStorage.setItem('userId', response.data.id);
-              this.$router.push({ name: "HomePage" });
-            }
-          } else {
-            alert("You already signed up! please log in");
-
-          }
-        } catch (error) {
-          console.error("Error during signup:", error);
-          alert("An error occurred. Please try again later.");
+        if (alreadyLoggedIn) {
+          alert("You already signed up! Please log in.");
+          return;
         }
-      } else {
-        alert("Please fill out all fields!");
+
+        const response = await axios.post("http://localhost:3000/users", {
+          name: this.name,
+          number: this.number,
+          password: this.password,
+        });
+
+        if (response.status === 201) {
+          this.successMessage = "🎉 Sign Up Successful! Redirecting...";
+          localStorage.setItem("user-info", JSON.stringify(response.data));
+          localStorage.setItem("userId", response.data.id);
+
+          // Redirect after a short delay
+          setTimeout(() => {
+            this.$router.push({ name: "HomePage" });
+          }, 2000);
+        }
+      } catch (error) {
+        console.error("Error during signup:", error);
+        alert("An error occurred. Please try again later.");
       }
     },
     redirectToLogin() {
       this.$router.push({ name: "LogIn" });
-    }, async isLogedIn() {
+    },
+    async isLoggedIn() {
       try {
         const response = await axios.get(
           `http://localhost:3000/users?name=${this.name}&password=${this.password}`
         );
-        return response.status === 200 && response.data.length > 0; // Ensure user exists
+        return response.status === 200 && response.data.length > 0;
       } catch (error) {
         console.error("Error checking login:", error);
         return false;
       }
+    },
+    validateForm() {
+      if (!this.name.trim()) {
+        alert("Name is required.");
+        return false;
+      }
+
+      if (!this.number.trim() || !/^\d+$/.test(this.number)) {
+        alert("Phone number must contain only digits.");
+        return false;
+      }
+
+      if (this.number.length < 10 || this.number.length > 15) {
+        alert("Phone number must be between 10 and 15 digits.");
+        return false;
+      }
+
+      if (!this.password.trim() || this.password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        return false;
+      }
+
+      return true;
     },
   },
   mounted() {
@@ -88,11 +137,12 @@ export default {
     if (user) {
       this.$router.push({ name: "HomePage" });
     }
-  }
+  },
 };
 </script>
 
 <style scoped>
+
 /* Centered Container */
 .register {
   width: 400px;
@@ -104,27 +154,24 @@ export default {
   position: fixed;
   top: 50%;
   left: 50%;
-  justify-content: center;
-  align-items: center;
   transform: translate(-50%, -50%);
   box-sizing: border-box;
 }
 
 /* Logo Styling */
 .logo {
-  width: 150px;
-  margin-bottom: 20px;
+  width: 300px;
+  margin-bottom: -23px;
 }
 
 /* Title Styling */
 .title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 1.5rem;
+  margin-top: 40px;
+    font-size: 30px;
+    font-weight: bold;
+    color: #b95555;
+    margin-bottom: 1.5rem;
 }
-
-
 
 /* Divider */
 .divider {
@@ -153,9 +200,6 @@ export default {
   margin-left: 0.5rem;
 }
 
-
-
-
 /* Text for Registered Users */
 .registered-text {
   margin-top: 1rem;
@@ -164,8 +208,24 @@ export default {
 }
 
 .login-link {
+
   color: salmon;
   cursor: pointer;
-  text-decoration: underline;
+  text-decoration: none;
+}
+
+/* Notification Styles */
+.notification {
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.notification.success {
+  background-color: #e0f7e9;
+  color: #2e7d32;
+  border: 1px solid #2e7d32;
 }
 </style>

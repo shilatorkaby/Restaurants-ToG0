@@ -1,22 +1,35 @@
 <template>
-  <div class="login-container">
+  <div class="login">
     <!-- Logo -->
-    <img class="logo" src="../assets/app-logo.jpg" />
-    <h1 class="title">Log In</h1>
+    <img class="logo" src="../assets/app-logo.png" alt="App Logo" />
+    <h1 class="title">Login Now</h1>
+    <div class="divider">Please enter the details below to continue.</div>
+
+    <!-- Notification -->
+    <div v-if="errorMessage" class="notification error">
+      {{ errorMessage }}
+    </div>
 
     <!-- Login Form -->
-    <div class="login-form">
-      <input type="text" v-model="name" placeholder="Enter Name" class="fade-placeholder" />
-      <input type="password" v-model="password" placeholder="Enter Password" class="fade-placeholder" />
+    <form @submit.prevent="LogIn">
+      <input type="text" v-model="name" placeholder="Enter your full name" class="fade-placeholder" />
+      <input type="password" v-model="password" placeholder="Enter your password" class="fade-placeholder" />
 
-      <button class="login-btn" @click="LogIn">Log In</button>
+      <!-- Log In Button -->
+      <button type="submit" class="login-btn">Log In</button>
+    </form>
 
-      <!-- Option to go to the Sign-Up page -->
-      <p class="signup-prompt">
-        Not registered yet?
-        <span @click="redirectToSignUp" class="signup-link">Create an Account</span>
-      </p>
-    </div>
+    <!-- Divider
+    <div class="divider">or</div> -->
+
+    <!-- Sign-Up Button
+    <button class="register-btn" @click="redirectToSignUp">Sign Up</button>
+ -->
+    <!-- Text for Unregistered Users -->
+    <p class="registered-text">
+      Not registered yet?
+      <span @click="redirectToSignUp" class="signup-link">Sign Up</span>
+    </p>
   </div>
 </template>
 
@@ -29,65 +42,69 @@ export default {
     return {
       name: "",
       password: "",
+      errorMessage: "", // Store error messages
     };
   },
   methods: {
     async LogIn() {
+      if (!this.validateForm()) return;
 
-      if (this.name && this.password) {
+      try {
+        const response = await axios.get(
+          `http://localhost:3000/users?name=${this.name}&password=${this.password}`
+        );
 
-        try {
-          // Check credentials against the server
-          console.log(this.name, this.password);
+        if (response.status === 200 && response.data.length > 0) {
+          // Successful login
+          localStorage.setItem("user-info", JSON.stringify(response.data));
+          localStorage.setItem("userId", response.data[0].id);
 
-          let response = await axios.get(`http://localhost:3000/users?name=${this.name}&password=${this.password}`
-          )
-
-          console.log("i've got response ", response.status);
-
-          // If login is successful, store user info and redirect
-          if (response.status == 200 && response.data.length > 0) {
-            localStorage.setItem('user-info', JSON.stringify(response.data));
-            localStorage.setItem('userId', response.data[0].id);
-
-            alert("Login Successful!");
-
+          this.errorMessage = "🎉 Login Successful! Redirecting...";
+          setTimeout(() => {
             this.$router.push({
               name: "HomePage",
-              params: { userId: response.data.id }
+              params: { userId: response.data[0].id },
             });
-          } else {
-            alert("Invalid credentials. Please try again.");
-          }
-        } catch (error) {
-          console.error("Login error:", error);
-          alert("An error occurred while logging in. Please try again later.");
+          }, 2000);
+        } else {
+          this.errorMessage = "Invalid credentials. Please try again.";
         }
-      } else {
-        alert("Please fill out all fields!");
+      } catch (error) {
+        console.error("Login error:", error);
+        this.errorMessage = "An error occurred. Please try again later.";
       }
     },
     redirectToSignUp() {
       this.$router.push({ name: "SignUp" });
     },
+    validateForm() {
+      if (!this.name.trim()) {
+        this.errorMessage = "Name is required.";
+        return false;
+      }
+
+      if (!this.password.trim()) {
+        this.errorMessage = "Password is required.";
+        return false;
+      }
+
+      return true;
+    },
   },
   mounted() {
-    let user = localStorage.getItem("user-info");
-
+    const user = localStorage.getItem("user-info");
     if (user) {
       this.$router.push({ name: "HomePage" });
     }
-  }
-
-
+  },
 };
 </script>
 
 <style scoped>
 /* Centered Container */
-.login-container {
+.login {
   width: 400px;
-  padding: 0 20px 0px 10px;
+  padding: 20px;
   border-radius: 8px;
   background: white;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -95,47 +112,107 @@ export default {
   position: fixed;
   top: 50%;
   left: 50%;
-  justify-content: center;
-  align-items: center;
   transform: translate(-50%, -50%);
-  box-sizing: content-box;
+  box-sizing: border-box;
 }
-
-
 
 /* Logo Styling */
 .logo {
-  width: 150px;
-  margin-bottom: 20px;
+  width: 300px;
+  margin-bottom: -23px;
 }
 
 /* Title Styling */
 .title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 1.5rem;
+  margin-top: 40px;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #b95555;
+    margin-bottom: 1.5rem;
 }
 
+/* Divider */
+.divider {
+  text-align: center;
+  margin: 1rem 0;
+  margin-top: -12px;
+  margin-bottom: 40px;
+  color: #aaa;
+  position: relative;
+  font-size: 0.9rem;
+}
 
+/* Notification Styles */
+.notification {
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 1rem;
+}
 
+.notification.error {
+  background-color: #fbe9e9;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+}
 
-/* Sign-Up Prompt */
-.signup-prompt {
+/* Text for Registered Users */
+.registered-text {
   margin-top: 1rem;
   font-size: 0.9rem;
-  color: #555;
+  color: #666;
 }
 
 .signup-link {
   color: salmon;
   cursor: pointer;
-  font-weight: bold;
-  text-decoration: underline;
-  margin-left: 0.3rem;
+  text-decoration: none;
 }
 
-.signup-link:hover {
-  color: #f55d53;
+/* Buttons */
+.login-btn,
+.register-btn {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 20px;
+  background: salmon;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-btn:hover,
+.register-btn:hover {
+  background: rgb(121, 61, 54);
+  color: rgb(243, 199, 194);
+}
+
+/* Inputs */
+input {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.fade-placeholder::placeholder {
+  color: #aaa;
+  transition: color 0.3s ease;
+}
+
+.fade-placeholder:focus::placeholder {
+  color: transparent;
+}
+
+input:focus {
+  border-color: salmon;
+  outline: none;
 }
 </style>

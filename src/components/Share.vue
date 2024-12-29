@@ -1,44 +1,24 @@
 <template>
     <Header />
     <div class="page-container">
-        <div class="add-section">
+        <div class="share-section">
 
             <button class="back-button" @click="goBack">
                 <span class="back-icon">←</span>
             </button>
 
-            <h1 class="add-title">Add New Restaurant</h1>
+            <h1 class="share-title">Share {{ restaurantName }} restaurant with</h1>
 
-            <form class="add-form" @submit.prevent="addRestaurant">
+            <form class="share-form" @submit.prevent="shareRestaurant">
 
                 <div class="form-group">
-                    <label for="name">Restaurant Name</label>
-                    <input id="name" type="text" name="name" placeholder="Enter restaurant name"
-                        v-model="restaurant.name" required class="fade-placeholder" />
+                    <label for="">Enter user name</label>
+                    <input id="userName" type="text" name="userName" placeholder="Enter user name"
+                        v-model="sharedUserName" required class="fade-placeholder" />
                 </div>
 
-                <div class="form-group">
-                    <label for="address">Restaurant Address</label>
-                    <input id="address" type="text" name="address" placeholder="Enter restaurant address"
-                        v-model="restaurant.address" required class="fade-placeholder" />
-                </div>
-
-                <div class="form-group">
-    <label for="type">Restaurant Type</label>
-    <div class="type-selection">
-        <label class="type-option" v-for="option in types" :key="option">
-            <input
-                type="radio"
-                name="type"
-                :value="option.toLowerCase()"
-                v-model="restaurant.type"
-            />
-            <span class="type-label">{{ option }}</span>
-        </label>
-    </div>
-</div>
-                <button type="submit" class="add-button" :disabled="isLoading">
-                    {{ isLoading ? 'Adding...' : 'Add Restaurant' }}
+                <button type="submit" class="share-button" :disabled="isLoading">
+                    {{ isLoading ? 'sharing...' : 'share Restaurant' }}
                 </button>
 
 
@@ -54,65 +34,97 @@ import Header from './Header.vue';
 import axios from 'axios';
 
 export default {
-    name: 'Add',
+    name: 'Share',
     components: {
         Header
     },
     data() {
         return {
-            restaurant: {
-                name: '',
-                address: '',
-                type: '',
-            },
-            types: ['Dairy', 'Meat', 'Parve'],
+            restaurantName: '',
+            restaurantId: '',
+            sharedUserName: '',
             isLoading: false,
             error: '',
         };
     },
     methods: {
-        async addRestaurant() {
+        async shareRestaurant() {
             try {
                 this.isLoading = true;
                 this.error = null;
-                this.restaurant.type = this.restaurant.type.toLocaleLowerCase();
 
-                // Adding restaurant to the "restaurants" table
-                const restaurantResponse = await axios.post(
-                    "http://localhost:3000/restaurants",
-                    this.restaurant
-                );
+                // sharing restaurant to the "restaurants" table
+                const sharesUserResponse = await axios.get(`http://localhost:3000/users?name=${this.sharedUserName}`);
 
-                if (restaurantResponse.status === 201) {
-                    const newRestaurant = restaurantResponse.data;
+                if (sharesUserResponse.statusText == 'OK') {
+                    const sharedUser = sharesUserResponse.data[0];
 
-                    // Adding restaurant to the "favorites" table
-                    const favoriteResponse = await axios.post(
-                        "http://localhost:3000/favorites",
-                        {
-                            userId: this.userId,
-                            restaurantId: newRestaurant.id
-                        }
-                    );
 
-                    if (favoriteResponse.status === 201) {
+                    // Check if the restaurant is already in the user's favorites list
+                    const favoriteCheckResponse = await axios.get("http://localhost:3000/favorites", {
+                        params: {
+                            userId: sharedUser.id,
+                            restaurantId: this.restaurantId,
+                        },
+                    });
+
+                    if (favoriteCheckResponse.status === 200 && favoriteCheckResponse.data.length > 0) {
+                        // If the restaurant is already in the favorites list
+                        this.error = "This restaurant is already in the user's favorites list.";
+                        return;
+                    }
+
+
+                    // Add the restaurant to the user's favorites list
+                    const favoriteResponse = await axios.post("http://localhost:3000/favorites", {
+                        userId: sharedUser.id,
+                        restaurantId: this.restaurantId,
+                    });
+
+
+                    if (favoriteResponse.status == 201) {
                         //  Navigate to the home page with a success query parameter
                         this.$router.push({
                             name: "HomePage",
                             params: { userId: this.userId },
-                            query: { added: 'success' }
+                            query: { shared: 'success' }
                         });
                     }
-                }
+                } else throw new Error("User not found");
+
             } catch (error) {
 
                 this.error = error.response?.data?.message ||
-                    'Error adding restaurant. Please try again.';
-                console.error('Add error:', error);
+                    'Error sharing restaurant. Please try again.';
+                console.error('share error:', error);
 
             } finally {
                 this.isLoading = false;
             }
+        },
+        async loadData() {
+            try {
+
+                const restaurantId = this.$route.params.id;
+                if (!restaurantId) throw new Error("Restaurant ID not found");
+
+                this.restaurantId = restaurantId;
+
+                // Use `await` to properly wait for the response
+                const response = await axios.get("http://localhost:3000/restaurants?id=" + this.restaurantId);
+
+                if (response.status === 200 && response.data.length > 0) {
+                    // Assuming the response data is an array of restaurants
+                    this.restaurantName = response.data[0].name;
+                } else {
+                    throw new Error("Restaurant not found");
+                }
+            } catch (error) {
+                this.error =
+                    error.response?.data?.message || "Error loading restaurant data. Please try again.";
+                console.error("Load error:", error);
+            }
+
         },
 
         goBack() {
@@ -123,12 +135,8 @@ export default {
         }
     },
 
-    mounted() {
-        const storedUserId = localStorage.getItem('userId');
-        if (!storedUserId) {
-            this.$router.push({ name: 'SignUp' });
-        }
-        this.userId = storedUserId;
+    async mounted() {
+        await this.loadData()
     }
 }
 </script>
@@ -141,7 +149,7 @@ export default {
     padding: 2rem 1rem;
 }
 
-.add-section {
+.share-section {
     position: relative;
     max-width: 500px;
     margin: 0 auto;
@@ -156,7 +164,7 @@ export default {
     margin-top: 10px;
 }
 
-.add-title {
+.share-title {
     font-size: 1.5rem;
     color: #2c3e50;
     margin-bottom: 1.5rem;
@@ -190,7 +198,7 @@ export default {
     color: #495057;
 }
 
-.add-form {
+.share-form {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -226,7 +234,7 @@ export default {
     color: #adb5bd;
 }
 
-.add-button {
+.share-button {
     margin-top: 1rem;
     padding: 0.75rem 1.5rem;
     background-color: #40c057;
@@ -239,36 +247,39 @@ export default {
     transition: all 0.2s ease;
 }
 
-.add-button:hover {
+.share-button:hover {
     background-color: #37b24d;
 }
 
-.add-button:active {
+.share-button:active {
     transform: translateY(1px);
 }
 
-.add-button:disabled {
+.share-button:disabled {
     background-color: #adb5bd;
     cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
-    .add-section {
+    .share-section {
         max-width: 100%;
         margin: 0 1rem;
         padding: 1.5rem;
     }
 
-    .add-title {
+    .share-title {
         font-size: 1.25rem;
     }
 }
 
 .type-selection {
     display: flex;
-    flex-wrap: wrap; /* Allows wrapping for responsiveness */
-    gap: 0.5rem; /* Reduces the spacing between elements */
-    justify-content: center; /* Centers the items horizontally */
+    flex-wrap: wrap;
+    /* Allows wrapping for responsiveness */
+    gap: 0.5rem;
+    /* Reduces the spacing between elements */
+    justify-content: center;
+    /* Centers the items horizontally */
 }
 
 .type-option {
@@ -292,10 +303,11 @@ export default {
     color: #495057;
     transition: all 0.3s ease;
     text-align: center;
-    min-width: 80px; /* Ensures consistent size */
+    min-width: 80px;
+    /* Ensures consistent size */
 }
 
-.type-option input:checked + .type-label {
+.type-option input:checked+.type-label {
     background-color: #4dabf7;
     color: white;
     border-color: #4dabf7;

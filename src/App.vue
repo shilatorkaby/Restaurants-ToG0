@@ -18,6 +18,12 @@ export default {
   color: #2c3e50;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .register button, .login-form button, .add button  {
   width: 100%;
   padding: 0.8rem;
@@ -37,8 +43,10 @@ export default {
 }
 
 .login-form, .register, .add {
-  width: 400px; /* or any suitable width */
+  width: 100%;
+  max-width: 400px; /* Limits to 400px */
   margin: 0 auto; /* Centers the container */
+  padding: 0 1rem; /* Adds padding for smaller screens */
 }
 
 
@@ -49,7 +57,7 @@ export default {
 
 .login-form input, .register input, .add input {
   width: 100% !important;
-  max-width: 400px !important;
+  max-width: 100% !important;
   padding: 0.8rem;
   margin-bottom: 1rem;
   border: 1px solid #ccc;
