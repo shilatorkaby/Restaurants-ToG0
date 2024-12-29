@@ -34,8 +34,10 @@ npm run lint
 
 
 ### icon library:
+```
 npm install @fortawesome/fontawesome-free
 npm install @fortawesome/vue-fontawesome
+```
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
